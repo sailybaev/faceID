@@ -16,3 +16,6 @@ psycopg2-binary==2.9.9
 dlib==19.24.2  # Требуется для face-recognition
 Pillow==10.2.0  # Для обработки изображений
 python-dateutil==2.8.2  # Для работы с датами
+
+# Сборка
+pyinstaller==6.3.0
