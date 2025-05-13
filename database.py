@@ -1,29 +1,7 @@
-import sqlite3
+from db_config import engine, Base
+from models import User, Attendance
 
-# Подключение к базе
-conn = sqlite3.connect("faceid.db")
-cursor = conn.cursor()
+# Create all tables
+Base.metadata.create_all(bind=engine)
 
-# Создание таблицы пользователей
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    photo BLOB NOT NULL
-)
-''')
-
-# Создание таблицы посещений
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS attendance (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    date TEXT NOT NULL,
-    time TEXT NOT NULL
-)
-''')
-
-# Сохранение и закрытие
-conn.commit()
-conn.close()
 print("База данных создана!")

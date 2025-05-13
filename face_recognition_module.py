@@ -1,30 +1,33 @@
 import cv2
 import face_recognition
 import numpy as np
-import sqlite3
 import datetime
+from db_config import SessionLocal
+from models import User, Attendance
 
 def load_known_faces():
     """ Загружает известных пользователей из базы данных """
-    conn = sqlite3.connect("faceid.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT name, photo FROM users")
-    users = cursor.fetchall()
-    conn.close()
+    db = SessionLocal()
+    try:
+        users = db.query(User).all()
+        known_face_encodings = []
+        known_face_names = []
 
-    known_face_encodings = []
-    known_face_names = []
+        for user in users:
+            try:
+                np_array = np.frombuffer(user.photo, dtype=np.uint8)
+                face_image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+                face_encoding = face_recognition.face_encodings(face_image)
 
-    for name, photo in users:
-        np_array = np.frombuffer(photo, dtype=np.uint8)
-        face_image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
-        face_encoding = face_recognition.face_encodings(face_image)
+                if face_encoding:
+                    known_face_encodings.append(face_encoding[0])
+                    known_face_names.append(user.name)
+            except Exception as e:
+                print(f"Ошибка загрузки изображения для {user.name}: {e}")
 
-        if face_encoding:
-            known_face_encodings.append(face_encoding[0])
-            known_face_names.append(name)
-
-    return known_face_encodings, known_face_names
+        return known_face_encodings, known_face_names
+    finally:
+        db.close()
 
 def recognize_face():
     """ Включает камеру и проверяет лицо по базе """
@@ -68,13 +71,14 @@ def recognize_face():
 
 def mark_attendance(name):
     """ Записывает факт прихода в базу данных """
-    conn = sqlite3.connect("faceid.db")
-    cursor = conn.cursor()
+    db = SessionLocal()
+    try:
+        now = datetime.datetime.now()
+        date = now.strftime("%Y-%m-%d")
+        time = now.strftime("%H:%M:%S")
 
-    now = datetime.datetime.now()
-    date = now.strftime("%Y-%m-%d")
-    time = now.strftime("%H:%M:%S")
-
-    cursor.execute("INSERT INTO attendance (name, date, time) VALUES (?, ?, ?)", (name, date, time))
-    conn.commit()
-    conn.close()
+        new_attendance = Attendance(name=name, date=date, time=time)
+        db.add(new_attendance)
+        db.commit()
+    finally:
+        db.close()
